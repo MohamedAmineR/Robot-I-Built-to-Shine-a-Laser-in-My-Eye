@@ -5,6 +5,7 @@ The hardware configuration is relatively straightforward, comprising the followi
 •	A Laser (duh)
 •	An old Laptop
 I joined the two servos, one for pan, the other for tilt, and mounted the laser to that assembly. Then the signal wires of the servos are connected to the Arduino, and all of the components are fed 5v. Of course, some simple instructions need to be written onto the Arduino
+
         #include
         
         Servo serX;
@@ -40,6 +41,7 @@ I joined the two servos, one for pan, the other for tilt, and mounted the laser 
             data.remove(data.indexOf("Y"), 1);
             return data.toInt();
         }
+        
                          
 With these instructions, the microcontroller listens for a serial event, processes the serial data, and writes it to the servos. The structure I've devised for positioning data is as follows:
 X(X position):Y(Y Position)
@@ -99,6 +101,9 @@ Okay cool, so now we just take the coordinates from the output list, send them t
 Nope.
 That's where I assumed it would end as well, but upon testing, I found that the system was fairly accurate when I was in in the center of its field of view, but wildly overshot when I was near FOV's bounds. It took me way too long to figure out what was going on, but from there it was a relatively straightforward fix.
 The issue was the the webcam has about a 50° viewing angle, while the servo configuration has 180° of angular range. So applying data taken from the webcam to the servos would cause a scaling factor as inputs reached the outer bounds of the webcam's FOV, ie me moving to the sides of the room.
+
+        ![image](https://github.com/MohamedAmineR/Robot-I-Built-to-Shine-a-Laser-in-My-Eye/assets/63235293/b9d737ae-24dc-42cc-921a-c66477167aed)
+
   
  
 To fix the issue, we need to scale servo instructions to the bounds of the webcam's degrees of vision. This is ultimately accomplished through calibration (which I will touch on in a moment) and in the following method:
@@ -117,6 +122,9 @@ To fix the issue, we need to scale servo instructions to the bounds of the webca
 
 
 Here we can see how xScaleConst and yScaleConst are calculated. So captureFrameWidth and captureFrameHeight are fairly self explanatory, the values can be attained by calling Width and Height on the Image returned by our frame capture. The rest of the values are properties of settings, but what is the settings object? Settings is the product of the calibration I mentioned earlier. After realizing that FOV to angular range scaling was an issue I had to create an entire calibration system to deal with it.
+
+        ![image](https://github.com/MohamedAmineR/Robot-I-Built-to-Shine-a-Laser-in-My-Eye/assets/63235293/3387d47e-d9e0-4f6b-8357-55f6ea34193b)
+
  
  
 Aside from being a terrible piece of UI, the calibration system allows the user to manually control the laser. The idea is to bring the laser to each bound of the screen (ie the webcam's FOV limits), and click save once it is there. This is what the variables xRightCalibration, xLeftCalibration, yTopCalibration and yBotCalibration represent. This data is then serialized to JSON format and saved to disk, which means you don't need to calibrate it every time you restart the system. This calibration system helps to account for variability's in the robot's location. For example, if I were to hard code the values and move the robot, it could loose accuracy due to changes in orientation relative to the wall.
